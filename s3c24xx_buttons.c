@@ -20,10 +20,10 @@ struct button_irq_desc{
 /*用来指定按键所用的外部中断引脚及中断触发方式，名字*/
 static struct button_irq_desc button_irqs[] = {
 	{IRQ_EINT19,IRQF_TRIGGER_FALLING,"KEY1"},
-	{IRQ_ENIT11,IRQF_TRIGGER_FALLING,"KEY2"},
+	{IRQ_EINT11,IRQF_TRIGGER_FALLING,"KEY2"},
 	{IRQ_EINT2, IRQF_TRIGGER_FALLING,"KEY3"},
 	{IRQ_EINT0, IRQF_TRIGGER_FALLING,"KEY4"},
-}
+};
 
 /*按键按下的次数（发生中断的次数）*/
 static volatile int press_cnt[] = {0, 0, 0, 0};
@@ -31,7 +31,7 @@ static volatile int press_cnt[] = {0, 0, 0, 0};
  * 当没有按键被按下时，如果由进程调用s3c24xx_buttons_read函数，
  * 它将休眠
  */
-static DECLARE_WAIT_QUEUE_HEADARE(button_waitq);
+static DECLARE_WAIT_QUEUE_HEAD(button_waitq);
 
 /*中断时件标志，中断服务程序将它置1,s3c24xx_buttons_read将它清0*/
 static volatile int ev_press = 0;
@@ -42,7 +42,7 @@ static irqreturn_t buttons_interrupt(int irq, void *dev_id)
 	*press_cnt = *press_cnt + 1;/*按键计数加1*/
 	ev_press = 1;		/*表示中断发生了*/
 	wake_up_interruptible(&button_waitq); /*唤醒休眠中的进程*/
-	return IRQ_RETAL(IRQ_HANDLED);
+	return IRQ_RETVAL(IRQ_HANDLED);
 }
 
 /* 应用程序对设备文件/dev/buttons执行open(...)时，
@@ -53,11 +53,11 @@ static int s3c24xx_buttons_open(struct inode *inode, struct file *file)
 {
 	int i;
 	int err;
-	for(i = 0; i < sizeof(button_irqs)/sizeof(button_irq[0]; i++)){
+	for(i = 0; i < sizeof(button_irqs)/sizeof(button_irqs[0]); i++){
 		
 		//注册中断函数
-		err = request_irq(button_irqs[i].irq, buttons_interrupt,button_irq[i].flags,
-				button_irqs[i].name, (void)&press_cnt[i]);
+		err = request_irq(button_irqs[i].irq, buttons_interrupt,button_irqs[i].flags,
+				button_irqs[i].name,(void *)&press_cnt[i]);
 		if(err){
 			break;
 		}
@@ -71,7 +71,7 @@ static int s3c24xx_buttons_open(struct inode *inode, struct file *file)
 		return -EBUSY;
 		
 	}
-	
+	return 0;
 }
 
 /* 应用程序对设备文件 /dev/buttons执行close(...)时，
@@ -144,9 +144,9 @@ static void __exit s3c24xx_buttons_exit(void)
 	unregister_chrdev(BUTTON_MAJOR,DEVICE_NAME);
 }
 
-module_inti(s3c24xx_buttons_init);
+module_init(s3c24xx_buttons_init);
 module_exit(s3c24xx_buttons_exit);
 
 MODULE_AUTHOR("http://www.100ask.net");
-MODULE_DESCIPTION("S3C2410/S3C2440 BUTTON Driver");
+MODULE_DESCRIPTION("S3C2410/S3C2440 BUTTON Driver");
 MODULE_LICENSE("GPL");
